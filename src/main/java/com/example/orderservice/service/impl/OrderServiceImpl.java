@@ -1,0 +1,123 @@
+package com.example.orderservice.service.impl;
+
+import com.example.orderservice.constants.OrderStatus;
+import com.example.orderservice.dto.OrderItemRequest;
+import com.example.orderservice.dto.OrderRequest;
+import com.example.orderservice.dto.OrderResponse;
+import com.example.orderservice.entity.Order;
+import com.example.orderservice.entity.OrderItem;
+import com.example.orderservice.exception.InvalidOrderException;
+import com.example.orderservice.exception.OrderNotFoundException;
+import com.example.orderservice.repository.OrderRepository;
+import com.example.orderservice.service.OrderService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class OrderServiceImpl implements OrderService {
+
+    private final OrderRepository orderRepository;
+
+    @Override
+    public OrderResponse createOrder(OrderRequest request) {
+
+        Order order = new Order();
+
+        order.setCustomerId(request.getCustomerId());
+        order.setStatus(OrderStatus.CONFIRMED);
+        order.setCreatedAt(LocalDateTime.now());
+        order.setUpdatedAt(LocalDateTime.now());
+
+        List<OrderItem> orderItems = new ArrayList<>();
+        BigDecimal totalAmount = BigDecimal.ZERO;
+
+        for (OrderItemRequest itemRequest : request.getItems()) {
+            if (itemRequest.getProductId() == null
+                    || itemRequest.getQuantity() == null
+                    || itemRequest.getUnitPrice() == null) {
+                throw new InvalidOrderException("productId, quantity, and unitPrice are required");
+            }
+
+            BigDecimal itemTotal = itemRequest.getUnitPrice()
+                    .multiply(BigDecimal.valueOf(itemRequest.getQuantity()));
+
+            OrderItem item = new OrderItem();
+            item.setOrder(order);
+            item.setProductId(itemRequest.getProductId());
+            item.setQuantity(itemRequest.getQuantity());
+            item.setUnitPrice(itemRequest.getUnitPrice());
+            item.setTotalPrice(itemTotal);
+
+            orderItems.add(item);
+            totalAmount = totalAmount.add(itemTotal);
+        }
+
+        order.setItems(orderItems);
+        order.setTotalAmount(totalAmount);
+
+        Order savedOrder = orderRepository.save(order);
+        return toResponse(savedOrder);
+    }
+
+    @Override
+    public OrderResponse cancelOrder(Long id) {
+
+        Order order = findOrder(id);
+        order.setStatus(OrderStatus.CANCELLED);
+        order.setUpdatedAt(LocalDateTime.now());
+
+        Order updatedOrder = orderRepository.save(order);
+        return toResponse(updatedOrder);
+    }
+
+    @Override
+    public OrderResponse getOrder(Long id) {
+
+        Order order = findOrder(id);
+        return toResponse(order);
+    }
+
+    @Override
+    public List<OrderResponse> getOrdersByCustomer(Long customerId) {
+
+        List<Order> orders = orderRepository.findByCustomerId(customerId);
+        List<OrderResponse> responses = new ArrayList<>();
+
+        for (Order order : orders) {
+            responses.add(toResponse(order));
+        }
+
+        return responses;
+    }
+
+    @Override
+    public String getOrderStatus(Long id) {
+
+        return findOrder(id).getStatus().name();
+    }
+
+    private Order findOrder(Long id) {
+
+        return orderRepository.findById(id)
+                .orElseThrow(() -> new OrderNotFoundException(id));
+    }
+
+    private OrderResponse toResponse(Order order) {
+
+        OrderResponse response = new OrderResponse();
+
+        response.setId(order.getId());
+        response.setCustomerId(order.getCustomerId());
+        response.setStatus(order.getStatus());
+        response.setTotalAmount(order.getTotalAmount());
+        response.setCreatedAt(order.getCreatedAt());
+
+        return response;
+    }
+}
