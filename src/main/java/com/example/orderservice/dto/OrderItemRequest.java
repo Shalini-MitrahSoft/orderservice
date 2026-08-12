@@ -1,12 +1,13 @@
 package com.example.orderservice.dto;
 
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
+
 import java.math.BigDecimal;
 
-@Getter
-@Setter
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class OrderItemRequest {
 
     private Long productId;

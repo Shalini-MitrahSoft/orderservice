@@ -1,11 +1,14 @@
 package com.example.orderservice.dto;
 
 import com.example.orderservice.constants.OrderStatus;
-import lombok.Data;
+import lombok.*;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class OrderResponse {
 
     private Long id;

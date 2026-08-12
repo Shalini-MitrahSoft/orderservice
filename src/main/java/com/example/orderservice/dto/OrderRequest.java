@@ -1,11 +1,12 @@
 package com.example.orderservice.dto;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
+
 import java.util.List;
 
-@Getter
-@Setter
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class OrderRequest {
 
     private Long customerId;
