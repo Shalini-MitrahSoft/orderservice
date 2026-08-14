@@ -30,8 +30,7 @@ public class InventoryClient {
                     .body(InventoryResponse.class);
 
             if (response == null || response.getAvailableQuantity() == null) {
-                throw new InventoryServiceException(
-                        "Inventory Service returned no inventory data for product " + productId);
+                throw new InventoryServiceException("Inventory Service returned no inventory data for product " + productId);
             }
 
             return response;
@@ -40,9 +39,7 @@ public class InventoryClient {
                 throw new InventoryNotFoundException(productId, exception);
             }
 
-            throw new InventoryServiceException(
-                    "Inventory Service request failed for product " + productId,
-                    exception);
+            throw new InventoryServiceException("Inventory Service request failed for product " + productId,exception);
         } catch (RestClientException exception) {
             throw new InventoryServiceException(
                     "Inventory Service is unavailable for product " + productId,

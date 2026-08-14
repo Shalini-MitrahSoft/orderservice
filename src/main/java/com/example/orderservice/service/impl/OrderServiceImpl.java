@@ -1,11 +1,10 @@
 package com.example.orderservice.service.impl;
-
 import com.example.orderservice.client.CustomerClient;
+import com.example.orderservice.client.ProductClient;
+import com.example.orderservice.dto.*;
+
+import com.example.orderservice.client.InventoryClient;
 import com.example.orderservice.constants.OrderStatus;
-import com.example.orderservice.dto.CustomerResponse;
-import com.example.orderservice.dto.OrderItemRequest;
-import com.example.orderservice.dto.OrderRequest;
-import com.example.orderservice.dto.OrderResponse;
 import com.example.orderservice.entity.Order;
 import com.example.orderservice.entity.OrderItem;
 import com.example.orderservice.event.OrderEvent;
@@ -18,10 +17,13 @@ import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import java.math.BigDecimal;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @Slf4j
@@ -29,8 +31,9 @@ import java.util.List;
 public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
-
+    private final InventoryClient inventoryClient;
     private final CustomerClient customerClient;
+    private final ProductClient productClient;
 
     private final OrderEventProducer orderEventProducer;
 
@@ -102,8 +105,8 @@ public class OrderServiceImpl implements OrderService {
 
         Order order = new Order();
 
-        order.setCustomerId(customerId);
-        order.setStatus(OrderStatus.CONFIRMED);
+        order.setCustomerId(request.getCustomerId());
+        order.setStatus(OrderStatus.PENDING);
         order.setCreatedAt(LocalDateTime.now());
         order.setUpdatedAt(LocalDateTime.now());
 
@@ -111,26 +114,68 @@ public class OrderServiceImpl implements OrderService {
             throw new InvalidOrderException("At least one order item is required");
         }
 
-        List<OrderItem> orderItems = new ArrayList<>();
+        Map<Long, ProductResponse> productsById = new HashMap<>();
 
         for (OrderItemRequest itemRequest : request.getItems()) {
             if (itemRequest.getProductId() == null
                     || itemRequest.getQuantity() == null) {
-                throw new InvalidOrderException("productId and quantity are required");
+                throw new InvalidOrderException("productId, quantity are required");
             }
+
+            if (itemRequest.getQuantity() <= 0) {
+                throw new InvalidOrderException("quantity must be greater than zero");
+            }
+
+            InventoryResponse inventory = inventoryClient.getInventory(itemRequest.getProductId());
+
+            if (inventory.getAvailableQuantity() < itemRequest.getQuantity()) {
+                order.setStatus(OrderStatus.REJECTED);
+                order.setItems(new ArrayList<>());
+                order.setTotalAmount(BigDecimal.ZERO);
+
+                Order rejectedOrder = orderRepository.save(order);
+                return toResponse(rejectedOrder);
+            }
+
+            ProductResponse product =
+                    productClient.getProduct(itemRequest.getProductId());
+
+            if (!"ACTIVE".equalsIgnoreCase(product.getStatus())) {
+                throw new InvalidOrderException(
+                        "Product is not ACTIVE: " + itemRequest.getProductId()
+                );
+            }
+
+            productsById.put(itemRequest.getProductId(), product);
+        }
+
+        List<OrderItem> orderItems = new ArrayList<>();
+        BigDecimal totalAmount = BigDecimal.ZERO;
+
+        for (OrderItemRequest itemRequest : request.getItems()) {
+
+            ProductResponse product =
+                    productsById.get(itemRequest.getProductId());
+
+            BigDecimal unitPrice = product.getPrice();
+
+            BigDecimal itemTotal = unitPrice.multiply(
+                    BigDecimal.valueOf(itemRequest.getQuantity())
+            );
 
             OrderItem item = new OrderItem();
             item.setOrder(order);
             item.setProductId(itemRequest.getProductId());
             item.setQuantity(itemRequest.getQuantity());
-            item.setUnitPrice(itemRequest.getUnitPrice());
-
-
+            item.setUnitPrice(unitPrice);
+            item.setTotalPrice(itemTotal);
             orderItems.add(item);
+            totalAmount = totalAmount.add(itemTotal);
         }
 
         order.setItems(orderItems);
-        order.setTotalAmount(null);
+        order.setTotalAmount(totalAmount);
+        order.setStatus(OrderStatus.CONFIRMED);
 
         Order savedOrder = orderRepository.save(order);
 //        return toResponse(savedOrder);

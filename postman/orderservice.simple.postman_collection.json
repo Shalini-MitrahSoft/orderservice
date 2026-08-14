@@ -17,7 +17,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"customerId\": 1001,\n  \"items\": [\n    {\n      \"productId\": 501,\n      \"quantity\": 2,\n      \"unitPrice\": 249.99\n    }\n  ]\n}"
+          "raw": "{\n  \"customerId\": 1001,\n  \"items\": [\n    {\n      \"productId\": 5,\n      \"quantity\": 2,\n      \"unitPrice\": 1500.00\n    }\n  ]\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/api/orders",
