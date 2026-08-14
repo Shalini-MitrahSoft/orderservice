@@ -22,6 +22,8 @@ public class Order {
 
     private Long customerId;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private OrderStatus status;
 
     private BigDecimal totalAmount;

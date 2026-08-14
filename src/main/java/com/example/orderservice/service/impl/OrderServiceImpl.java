@@ -1,8 +1,8 @@
 package com.example.orderservice.service.impl;
 
-import com.example.orderservice.client.InventoryClient;
+import com.example.orderservice.client.CustomerClient;
 import com.example.orderservice.constants.OrderStatus;
-import com.example.orderservice.dto.InventoryResponse;
+import com.example.orderservice.dto.CustomerResponse;
 import com.example.orderservice.dto.OrderItemRequest;
 import com.example.orderservice.dto.OrderRequest;
 import com.example.orderservice.dto.OrderResponse;
@@ -12,28 +12,94 @@ import com.example.orderservice.exception.InvalidOrderException;
 import com.example.orderservice.exception.OrderNotFoundException;
 import com.example.orderservice.repository.OrderRepository;
 import com.example.orderservice.service.OrderService;
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
-    private final InventoryClient inventoryClient;
+
+    private final CustomerClient customerClient;
 
     @Override
     public OrderResponse createOrder(OrderRequest request) {
 
+        if (request.getCustomerId() == null) {
+
+            log.warn("Order creation failed: customerId is null");
+
+            throw new InvalidOrderException("Customer ID is required");
+        }
+
+        Long customerId = request.getCustomerId();
+
+        log.info("Starting customer validation for customerId={}", customerId);
+
+        CustomerResponse customer;
+
+        try {
+            log.info("Calling Customer Service for customerId={}", customerId);
+
+            customer = customerClient.getCustomer(customerId);
+
+            log.info("Customer Service call successful for customerId={}", customerId);
+
+        } catch (FeignException.NotFound exception) {
+
+            log.warn("Customer not found for customerId={}, status={}", customerId, exception.status());
+
+            throw new InvalidOrderException("Invalid customer ID: " + customerId);
+
+        } catch (FeignException exception) {
+
+            log.error(
+                    "Customer Service call failed for customerId={}, status={}, error={}",
+                    customerId,
+                    exception.status(),
+                    exception.getMessage(),
+                    exception
+            );
+
+            throw new InvalidOrderException("Unable to validate customer. Customer Service status: " + exception.status());
+
+        } catch (Exception exception) {
+
+            log.error("Unexpected error while validating customerId={}", customerId, exception);
+            throw new InvalidOrderException("Unexpected error while validating customer");
+        }
+
+        if (customer == null || customer.getId() == null) {
+
+            log.warn("Customer Service returned an invalid response for customerId={}", customerId);
+            throw new InvalidOrderException("Invalid customer ID: " + customerId);
+        }
+
+        if (!"ACTIVE".equalsIgnoreCase(customer.getStatus())) {
+
+            log.warn(
+                    "Order creation rejected because customerId={} has status={}",
+                    customerId,
+                    customer.getStatus()
+            );
+
+            throw new InvalidOrderException("Customer with ID " + customerId + " is not ACTIVE");
+        }
+
+        log.info("Customer validation completed successfully for customerId={}", customerId);
+
         Order order = new Order();
 
-        order.setCustomerId(request.getCustomerId());
-        order.setStatus(OrderStatus.PENDING);
+        order.setCustomerId(customerId);
+        order.setStatus(OrderStatus.CONFIRMED);
         order.setCreatedAt(LocalDateTime.now());
         order.setUpdatedAt(LocalDateTime.now());
 
@@ -41,51 +107,26 @@ public class OrderServiceImpl implements OrderService {
             throw new InvalidOrderException("At least one order item is required");
         }
 
+        List<OrderItem> orderItems = new ArrayList<>();
+
         for (OrderItemRequest itemRequest : request.getItems()) {
             if (itemRequest.getProductId() == null
-                    || itemRequest.getQuantity() == null
-                    || itemRequest.getUnitPrice() == null) {
-                throw new InvalidOrderException("productId, quantity, and unitPrice are required");
+                    || itemRequest.getQuantity() == null) {
+                throw new InvalidOrderException("productId and quantity are required");
             }
-
-            if (itemRequest.getQuantity() <= 0) {
-                throw new InvalidOrderException("quantity must be greater than zero");
-            }
-
-            InventoryResponse inventory = inventoryClient.getInventory(itemRequest.getProductId());
-
-            if (inventory.getAvailableQuantity() < itemRequest.getQuantity()) {
-                order.setStatus(OrderStatus.REJECTED);
-                order.setItems(new ArrayList<>());
-                order.setTotalAmount(BigDecimal.ZERO);
-
-                Order rejectedOrder = orderRepository.save(order);
-                return toResponse(rejectedOrder);
-            }
-        }
-
-        List<OrderItem> orderItems = new ArrayList<>();
-        BigDecimal totalAmount = BigDecimal.ZERO;
-
-        for (OrderItemRequest itemRequest : request.getItems()) {
-
-            BigDecimal itemTotal = itemRequest.getUnitPrice()
-                    .multiply(BigDecimal.valueOf(itemRequest.getQuantity()));
 
             OrderItem item = new OrderItem();
             item.setOrder(order);
             item.setProductId(itemRequest.getProductId());
             item.setQuantity(itemRequest.getQuantity());
             item.setUnitPrice(itemRequest.getUnitPrice());
-            item.setTotalPrice(itemTotal);
+
 
             orderItems.add(item);
-            totalAmount = totalAmount.add(itemTotal);
         }
 
         order.setItems(orderItems);
-        order.setTotalAmount(totalAmount);
-        order.setStatus(OrderStatus.CONFIRMED);
+        order.setTotalAmount(null);
 
         Order savedOrder = orderRepository.save(order);
         return toResponse(savedOrder);
