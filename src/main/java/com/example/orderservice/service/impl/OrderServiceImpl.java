@@ -8,8 +8,10 @@ import com.example.orderservice.dto.OrderRequest;
 import com.example.orderservice.dto.OrderResponse;
 import com.example.orderservice.entity.Order;
 import com.example.orderservice.entity.OrderItem;
+import com.example.orderservice.event.OrderEvent;
 import com.example.orderservice.exception.InvalidOrderException;
 import com.example.orderservice.exception.OrderNotFoundException;
+import com.example.orderservice.kafka.OrderEventProducer;
 import com.example.orderservice.repository.OrderRepository;
 import com.example.orderservice.service.OrderService;
 import feign.FeignException;
@@ -29,6 +31,8 @@ public class OrderServiceImpl implements OrderService {
     private final OrderRepository orderRepository;
 
     private final CustomerClient customerClient;
+
+    private final OrderEventProducer orderEventProducer;
 
     @Override
     public OrderResponse createOrder(OrderRequest request) {
@@ -129,17 +133,73 @@ public class OrderServiceImpl implements OrderService {
         order.setTotalAmount(null);
 
         Order savedOrder = orderRepository.save(order);
+//        return toResponse(savedOrder);
+
+        log.info(
+                "Order saved successfully: orderId={}, customerId={}, status={}",
+                savedOrder.getId(),
+                savedOrder.getCustomerId(),
+                savedOrder.getStatus()
+        );
+
+        OrderEvent orderEvent = new OrderEvent();
+
+        orderEvent.setEventType("ORDER_CONFIRMED");
+        orderEvent.setOrderId(savedOrder.getId());
+        orderEvent.setCustomerId(savedOrder.getCustomerId());
+        orderEvent.setStatus(savedOrder.getStatus().name());
+        orderEvent.setReason(null);
+        orderEvent.setTimestamp(LocalDateTime.now().toString());
+
+        orderEventProducer.publishOrderEvent(orderEvent);
+
         return toResponse(savedOrder);
     }
+
+//    @Override
+//    public OrderResponse cancelOrder(Long id) {
+//
+//        Order order = findOrder(id);
+//        order.setStatus(OrderStatus.CANCELLED);
+//        order.setUpdatedAt(LocalDateTime.now());
+//
+//        Order updatedOrder = orderRepository.save(order);
+//        return toResponse(updatedOrder);
+//    }
 
     @Override
     public OrderResponse cancelOrder(Long id) {
 
         Order order = findOrder(id);
+
         order.setStatus(OrderStatus.CANCELLED);
         order.setUpdatedAt(LocalDateTime.now());
 
-        Order updatedOrder = orderRepository.save(order);
+        Order updatedOrder =
+                orderRepository.save(order);
+
+        OrderEvent orderEvent = new OrderEvent();
+
+        orderEvent.setEventType("ORDER_CANCELLED");
+        orderEvent.setOrderId(updatedOrder.getId());
+        orderEvent.setCustomerId(
+                updatedOrder.getCustomerId()
+        );
+        orderEvent.setStatus(
+                updatedOrder.getStatus().name()
+        );
+        orderEvent.setReason(null);
+        orderEvent.setTimestamp(
+                LocalDateTime.now().toString()
+        );
+
+        orderEventProducer.publishOrderEvent(orderEvent);
+
+        log.info(
+                "Order cancellation event published: orderId={}",
+                updatedOrder.getId()
+        );
+
         return toResponse(updatedOrder);
     }
 
