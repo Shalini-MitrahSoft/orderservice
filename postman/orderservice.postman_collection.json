@@ -1,0 +1,87 @@
+{
+  "info": {
+    "name": "Order Service",
+    "description": "Postman collection for Order Service API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8081",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Create Order",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/orders",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "orders"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"customerId\": 1,\n  \"items\": [\n    {\n      \"productId\": 101,\n      \"quantity\": 2\n    },\n    {\n      \"productId\": 102,\n      \"quantity\": 1\n    }\n  ]\n}"
+        }
+      }
+    },
+    {
+      "name": "Get Order by ID",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/orders/1",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "orders", "1"]
+        }
+      }
+    },
+    {
+      "name": "Get Orders by Customer",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/orders?customerId=1",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "orders"],
+          "query": [
+            {
+              "key": "customerId",
+              "value": "1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Order Status",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/orders/1/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "orders", "1", "status"]
+        }
+      }
+    },
+    {
+      "name": "Cancel Order",
+      "request": {
+        "method": "PUT",
+        "url": {
+          "raw": "{{baseUrl}}/api/orders/1/cancel",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "orders", "1", "cancel"]
+        }
+      }
+    }
+  ]
+}
