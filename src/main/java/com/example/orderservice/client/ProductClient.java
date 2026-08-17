@@ -2,6 +2,7 @@ package com.example.orderservice.client;
 
 import com.example.orderservice.dto.ProductResponse;
 import com.example.orderservice.exception.InvalidOrderException;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -20,6 +21,10 @@ public class ProductClient {
         this.webClient = webClientBuilder.build();
     }
 
+    @CircuitBreaker(
+            name = "productService",
+            fallbackMethod = "productFallback"
+    )
     public ProductResponse getProduct(Long productId) {
         try {
             ProductResponse product = webClient
@@ -61,5 +66,14 @@ public class ProductClient {
                     "Unable to get product price from Inventory Service"
             );
         }
+    }
+    public ProductResponse productFallback(
+            Long productId,
+            Throwable throwable) {
+
+        throw new InvalidOrderException(
+                "Product Service is currently unavailable for product: "
+                        + productId
+        );
     }
 }

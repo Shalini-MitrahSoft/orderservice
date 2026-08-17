@@ -3,6 +3,7 @@ package com.example.orderservice.client;
 import com.example.orderservice.dto.InventoryResponse;
 import com.example.orderservice.exception.InventoryNotFoundException;
 import com.example.orderservice.exception.InventoryServiceException;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -22,6 +23,10 @@ public class InventoryClient {
         this.restClient = restClientBuilder.build();
     }
 
+    @CircuitBreaker(
+            name = "inventoryService",
+            fallbackMethod = "inventoryFallback"
+    )
     public InventoryResponse getInventory(Long productId) {
         try {
             InventoryResponse response = restClient.get()
@@ -45,5 +50,16 @@ public class InventoryClient {
                     "Inventory Service is unavailable for product " + productId,
                     exception);
         }
+    }
+
+    public InventoryResponse inventoryFallback(
+            Long productId,
+            Throwable throwable) {
+
+        throw new InventoryServiceException(
+                "Inventory Service is currently unavailable for product "
+                        + productId,
+                throwable
+        );
     }
 }
