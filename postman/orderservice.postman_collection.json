@@ -45,6 +45,17 @@
       }
     },
     {
+      "name": "Get All Orders",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/orders",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "orders"]
+        }
+      }
+    },
+    {
       "name": "Get Orders by Customer",
       "request": {
         "method": "GET",

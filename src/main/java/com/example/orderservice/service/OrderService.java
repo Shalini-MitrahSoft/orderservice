@@ -13,6 +13,8 @@ public interface OrderService {
 
     OrderResponse getOrder(Long id);
 
+    List<OrderResponse> getAllOrders();
+
     List<OrderResponse> getOrdersByCustomer(Long customerId);
 
     String getOrderStatus(Long id);

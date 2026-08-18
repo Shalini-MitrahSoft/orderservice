@@ -256,6 +256,19 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    public List<OrderResponse> getAllOrders() {
+
+        List<Order> orders = orderRepository.findAll();
+        List<OrderResponse> responses = new ArrayList<>();
+
+        for (Order order : orders) {
+            responses.add(toResponse(order));
+        }
+
+        return responses;
+    }
+
+    @Override
     public List<OrderResponse> getOrdersByCustomer(Long customerId) {
 
         List<Order> orders = orderRepository.findByCustomerId(customerId);

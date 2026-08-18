@@ -28,8 +28,11 @@ public class OrderController {
     }
 
     @GetMapping
-    public List<OrderResponse> getOrdersByCustomer(@RequestParam Long customerId) {
+    public List<OrderResponse> getOrders(@RequestParam(required = false) Long customerId) {
 
+        if (customerId == null) {
+            return orderService.getAllOrders();
+        }
         return orderService.getOrdersByCustomer(customerId);
     }
 
