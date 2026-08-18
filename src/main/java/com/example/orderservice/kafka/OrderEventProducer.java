@@ -31,9 +31,7 @@ public class OrderEventProducer {
             log.info("Publishing order event: topic={}, orderId={}, eventType={}",
                     orderTopic, event.getOrderId(), event.getEventType());
 
-            kafkaTemplate
-                    .send(orderTopic, key, eventJson)
-                    .whenComplete((result, exception) -> {
+            kafkaTemplate.send(orderTopic, key, eventJson).whenComplete((result, exception) -> {
 
                         if (exception != null) {
                             log.error("Failed to publish order event: orderId={}", event.getOrderId(), exception);

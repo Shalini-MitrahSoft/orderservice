@@ -10,10 +10,7 @@ import org.springframework.kafka.config.TopicBuilder;
 public class KafkaTopicConfig {
 
     @Bean
-    public NewTopic orderEventsTopic(
-            @Value("${app.kafka.order-topic}")
-            String topicName
-    ) {
+    public NewTopic orderEventsTopic(@Value("${app.kafka.order-topic}") String topicName) {
 
         return TopicBuilder
                 .name(topicName)
