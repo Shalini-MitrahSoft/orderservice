@@ -201,17 +201,6 @@ public class OrderServiceImpl implements OrderService {
         return toResponse(savedOrder);
     }
 
-//    @Override
-//    public OrderResponse cancelOrder(Long id) {
-//
-//        Order order = findOrder(id);
-//        order.setStatus(OrderStatus.CANCELLED);
-//        order.setUpdatedAt(LocalDateTime.now());
-//
-//        Order updatedOrder = orderRepository.save(order);
-//        return toResponse(updatedOrder);
-//    }
-
     @Override
     public OrderResponse cancelOrder(Long id) {
 
@@ -220,30 +209,20 @@ public class OrderServiceImpl implements OrderService {
         order.setStatus(OrderStatus.CANCELLED);
         order.setUpdatedAt(LocalDateTime.now());
 
-        Order updatedOrder =
-                orderRepository.save(order);
+        Order updatedOrder = orderRepository.save(order);
 
         OrderEvent orderEvent = new OrderEvent();
 
         orderEvent.setEventType("ORDER_CANCELLED");
         orderEvent.setOrderId(updatedOrder.getId());
-        orderEvent.setCustomerId(
-                updatedOrder.getCustomerId()
-        );
-        orderEvent.setStatus(
-                updatedOrder.getStatus().name()
-        );
+        orderEvent.setCustomerId(updatedOrder.getCustomerId());
+        orderEvent.setStatus(updatedOrder.getStatus().name());
         orderEvent.setReason(null);
-        orderEvent.setTimestamp(
-                LocalDateTime.now().toString()
-        );
+        orderEvent.setTimestamp(LocalDateTime.now().toString());
 
         orderEventProducer.publishOrderEvent(orderEvent);
 
-        log.info(
-                "Order cancellation event published: orderId={}",
-                updatedOrder.getId()
-        );
+        log.info("Order cancellation event published: orderId={}", updatedOrder.getId());
 
         return toResponse(updatedOrder);
     }

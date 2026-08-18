@@ -24,52 +24,31 @@ public class OrderEventProducer {
     public void publishOrderEvent(OrderEvent event) {
 
         try {
-            String eventJson =
-                    objectMapper.writeValueAsString(event);
+            String eventJson = objectMapper.writeValueAsString(event);
 
-            String key =
-                    String.valueOf(event.getOrderId());
+            String key = String.valueOf(event.getOrderId());
 
-            log.info(
-                    "Publishing order event: topic={}, orderId={}, eventType={}",
-                    orderTopic,
-                    event.getOrderId(),
-                    event.getEventType()
-            );
+            log.info("Publishing order event: topic={}, orderId={}, eventType={}",
+                    orderTopic, event.getOrderId(), event.getEventType());
 
             kafkaTemplate
                     .send(orderTopic, key, eventJson)
                     .whenComplete((result, exception) -> {
 
                         if (exception != null) {
-                            log.error(
-                                    "Failed to publish order event: orderId={}",
-                                    event.getOrderId(),
-                                    exception
-                            );
-
+                            log.error("Failed to publish order event: orderId={}", event.getOrderId(), exception);
                             return;
                         }
 
-                        log.info(
-                                "Order event published: orderId={}, partition={}, offset={}",
-                                event.getOrderId(),
-                                result.getRecordMetadata().partition(),
-                                result.getRecordMetadata().offset()
-                        );
+                        log.info("Order event published: orderId={}, partition={}, offset={}", event.getOrderId(), result.getRecordMetadata().partition(),
+                                result.getRecordMetadata().offset());
                     });
 
         } catch (JsonProcessingException exception) {
 
-            log.error(
-                    "Failed to convert OrderEvent to JSON: orderId={}",
-                    event.getOrderId(),
-                    exception
-            );
+            log.error("Failed to convert OrderEvent to JSON: orderId={}", event.getOrderId(), exception);
 
-            throw new IllegalStateException(
-                    "Failed to prepare order event",
-                    exception
+            throw new IllegalStateException("Failed to prepare order event", exception
             );
         }
     }

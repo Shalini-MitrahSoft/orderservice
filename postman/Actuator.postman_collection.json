@@ -1,0 +1,78 @@
+{
+  "info": {
+    "_postman_id": "b8c5a2d1-17e4-4f6a-9131-000000000002",
+    "name": "Order Service - Actuator",
+    "description": "Actuator endpoints for Order Service.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8081",
+      "type": "string"
+    },
+    {
+      "key": "metricName",
+      "value": "http.server.requests",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Endpoint Discovery",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/actuator"
+      }
+    },
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/actuator/health"
+      }
+    },
+    {
+      "name": "Liveness",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/actuator/health/liveness"
+      }
+    },
+    {
+      "name": "Readiness",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/actuator/health/readiness"
+      }
+    },
+    {
+      "name": "Application Info",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/actuator/info"
+      }
+    },
+    {
+      "name": "Metrics List",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/actuator/metrics"
+      }
+    },
+    {
+      "name": "Metric by Name",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/actuator/metrics/{{metricName}}"
+      }
+    }
+  ]
+}
