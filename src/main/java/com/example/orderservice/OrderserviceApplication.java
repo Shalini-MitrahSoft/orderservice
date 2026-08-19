@@ -10,9 +10,9 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 @SpringBootApplication
 @OpenAPIDefinition(info = @Info(
 		title = "Order Service API",
-		version = "v1",
+		version ="v1",
 		description = "Order management APIs for the Order Management System"
-), servers = @Server(url = "/", description = "Current host"))
+))
 @EnableFeignClients(
 		basePackages = "com.example.orderservice.client"
 )
