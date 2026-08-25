@@ -19,5 +19,7 @@ public interface OrderService {
 
     String getOrderStatus(Long id);
 
+    boolean existsById(Long id);
+
 
 }

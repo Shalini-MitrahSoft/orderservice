@@ -17,6 +17,9 @@ import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import java.math.BigDecimal;
 
 import java.time.LocalDateTime;
@@ -36,8 +39,12 @@ public class OrderServiceImpl implements OrderService {
     private final ProductClient productClient;
 
     private final OrderEventProducer orderEventProducer;
-
     @Override
+    @Caching(evict = {
+            @CacheEvict(cacheNames = "orderList", allEntries = true),
+            @CacheEvict(cacheNames = "customerOrders", allEntries = true),
+            @CacheEvict(cacheNames = "orderExists", key = "#result.id")
+    })
     public OrderResponse createOrder(OrderRequest request) {
 
         if (request.getCustomerId() == null) {
@@ -202,6 +209,12 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(cacheNames = "order", key = "#id"),
+            @CacheEvict(cacheNames = "orderList", allEntries = true),
+            @CacheEvict(cacheNames = "customerOrders", allEntries = true),
+            @CacheEvict(cacheNames = "orderStatus", key = "#id")
+    })
     public OrderResponse cancelOrder(Long id) {
 
         Order order = findOrder(id);
@@ -210,6 +223,7 @@ public class OrderServiceImpl implements OrderService {
         order.setUpdatedAt(LocalDateTime.now());
 
         Order updatedOrder = orderRepository.save(order);
+        OrderResponse updatedResponse = toResponse(updatedOrder);
 
         OrderEvent orderEvent = new OrderEvent();
 
@@ -224,46 +238,56 @@ public class OrderServiceImpl implements OrderService {
 
         log.info("Order cancellation event published: orderId={}", updatedOrder.getId());
 
-        return toResponse(updatedOrder);
+        return updatedResponse;
     }
 
     @Override
+    @Cacheable(cacheNames = "order", key = "#id")
     public OrderResponse getOrder(Long id) {
-
         Order order = findOrder(id);
         return toResponse(order);
     }
 
     @Override
+    @Cacheable(cacheNames = "orderList", key = "'all'")
     public List<OrderResponse> getAllOrders() {
 
         List<Order> orders = orderRepository.findAll();
         List<OrderResponse> responses = new ArrayList<>();
 
         for (Order order : orders) {
-            responses.add(toResponse(order));
+            OrderResponse response = toResponse(order);
+            responses.add(response);
         }
 
         return responses;
     }
 
     @Override
+    @Cacheable(cacheNames = "customerOrders", key = "#customerId")
     public List<OrderResponse> getOrdersByCustomer(Long customerId) {
 
         List<Order> orders = orderRepository.findByCustomerId(customerId);
         List<OrderResponse> responses = new ArrayList<>();
 
         for (Order order : orders) {
-            responses.add(toResponse(order));
+            OrderResponse response = toResponse(order);
+            responses.add(response);
         }
 
         return responses;
     }
 
     @Override
+    @Cacheable(cacheNames = "orderStatus", key = "#id")
     public String getOrderStatus(Long id) {
-
         return findOrder(id).getStatus().name();
+    }
+
+    @Override
+    @Cacheable(cacheNames = "orderExists", key = "#id")
+    public boolean existsById(Long id) {
+        return orderRepository.existsById(id);
     }
 
     private Order findOrder(Long id) {
@@ -284,4 +308,5 @@ public class OrderServiceImpl implements OrderService {
 
         return response;
     }
+
 }

@@ -5,9 +5,11 @@ import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.servers.Server;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 
 @SpringBootApplication
+@EnableCaching
 @OpenAPIDefinition(info = @Info(
 		title = "Order Service API",
 		version ="v1",
