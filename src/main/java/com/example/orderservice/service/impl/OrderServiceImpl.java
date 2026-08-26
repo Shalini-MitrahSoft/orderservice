@@ -306,6 +306,19 @@ public class OrderServiceImpl implements OrderService {
         response.setTotalAmount(order.getTotalAmount());
         response.setCreatedAt(order.getCreatedAt());
 
+        if (order.getItems() != null) {
+            List<OrderItemResponse> itemResponses = order.getItems().stream()
+                    .map(item -> new OrderItemResponse(
+                            item.getId(),
+                            item.getProductId(),
+                            item.getQuantity(),
+                            item.getUnitPrice(),
+                            item.getTotalPrice()
+                    ))
+                    .toList();
+            response.setItems(itemResponses);
+        }
+
         return response;
     }
 
